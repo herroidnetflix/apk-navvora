@@ -23,7 +23,7 @@ jobs:
 
           GRADLEW="$(find source -type f -name gradlew -print -quit)"
           if [ -z "$GRADLEW" ]; then
-            echo "gradlew not found in ZIP"
+            echo "ERROR: gradlew not found in ZIP"
             exit 1
           fi
 
@@ -36,18 +36,17 @@ jobs:
           java-version: '17'
 
       - name: Configure Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Verify Android SDK
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          sdkmanager --version
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME"
+          ls -la "$ANDROID_HOME"
+          ls -la "$ANDROID_HOME/platform-tools" || true
 
-      - name: Build debug APK
+      - name: Build APK
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -55,3 +54,4 @@ jobs:
           name: Navvora-debug-APK
           path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          retention-days: 14
