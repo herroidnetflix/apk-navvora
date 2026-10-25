@@ -18,49 +18,40 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ZIP_FILE="Navvora-Liquid-Glass-Source.zip"
+          mkdir -p source
+          unzip -q Navvora-Liquid-Glass-Source.zip -d source
 
-          if [ ! -f "$ZIP_FILE" ]; then
-            echo "ERROR: $ZIP_FILE not found in repository root."
-            exit 1
-          fi
-
-          mkdir source
-          unzip -q "$ZIP_FILE" -d source
-
-          # Locate the Android project root by finding gradlew
           GRADLEW="$(find source -type f -name gradlew -print -quit)"
-
           if [ -z "$GRADLEW" ]; then
-            echo "ERROR: No Gradle wrapper found in the ZIP."
+            echo "gradlew not found in ZIP"
             exit 1
           fi
 
-          PROJECT_DIR="$(dirname "$GRADLEW")"
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-          echo "Found project at: $PROJECT_DIR"
+          echo "PROJECT_DIR=$(dirname "$GRADLEW")" >> "$GITHUB_ENV"
 
-      - name: Set up JDK
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
-      - name: Set up Android SDK
+      - name: Configure Android SDK
         uses: android-actions/setup-android@v3
+
+      - name: Verify Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          sdkmanager --version
 
       - name: Build debug APK
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
-          chmod +x ./gradlew
+          chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Navvora-debug-APK
-          path: |
-            ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-          retention-days: 14
